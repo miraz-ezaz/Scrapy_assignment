@@ -12,11 +12,11 @@ BOT_NAME = "hotel_spider"
 SPIDER_MODULES = ["hotel_spider.spiders"]
 NEWSPIDER_MODULE = "hotel_spider.spiders"
 
-
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 # Enable the ImagesPipeline and custom pipelines
 ITEM_PIPELINES = {
-    'hotel_spider.pipelines.CustomImagesPipeline': 1,
-    'hotel_spider.pipelines.SaveToDatabasePipeline': 300,
+    'hotel_spider.pipelines.CustomImagesPipeline': 300,
+    
 }
 
 # Specify the directory to store downloaded images

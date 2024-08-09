@@ -5,6 +5,7 @@ from scrapy.exceptions import DropItem
 from scrapy import Request
 from database_manager.database import init_db, add_listing
 from hotel_spider.settings import IMAGES_STORE
+from itemadapter import ItemAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +43,10 @@ class SaveToDatabasePipeline:
 
 class CustomImagesPipeline(ImagesPipeline):
     def get_media_requests(self, item, info):
-        for idx, image_url in enumerate(item['image_urls']):
-            yield Request(image_url, meta={'title': item['title'], 'room_type': item['room_type'], 'idx': idx})
+        for image_url in item["image_urls"]:
+            yield Request(image_url)
 
+    
     def file_path(self, request, response=None, info=None, *, item=None):
         title = request.meta['title'].replace(" ", "_")
         room_type = request.meta['room_type'].replace(" ", "_")
@@ -53,10 +55,9 @@ class CustomImagesPipeline(ImagesPipeline):
         return filename
 
     def item_completed(self, results, item, info):
-        image_paths = [x['path'] for ok, x in results if ok]
+        image_paths = [x["path"] for ok, x in results if ok]
         if not image_paths:
-            logger.error(f"Item contains no images after downloading: {item}")
             raise DropItem("Item contains no images")
-        item['images'] = image_paths
-        logger.info(f"Images downloaded and saved: {image_paths}")
+        adapter = ItemAdapter(item)
+        adapter["image_paths"] = image_paths
         return item
