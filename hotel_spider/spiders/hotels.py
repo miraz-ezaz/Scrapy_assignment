@@ -4,6 +4,7 @@ import re
 import json
 from ..items import HotelSpiderItem
 from datetime import datetime, timedelta
+import time
 
 
 
@@ -50,7 +51,8 @@ class HotelsSpider(scrapy.Spider):
                     'User-Agent':
 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
                 },
-                callback=self.parse
+                callback=self.parse,
+                dont_filter = True
             )
                 
                 
@@ -68,32 +70,52 @@ class HotelsSpider(scrapy.Spider):
                 
                 hotel_data = json.loads(hotel_json)
                 hotel_list = hotel_data['initData']['firstPageList']['hotelList']
+
                 for hotel in hotel_list:
-                    item = HotelSpiderItem()
                     hotelBasicInfo = hotel['hotelBasicInfo']
-                    item['title'] = hotelBasicInfo['hotelEnName']
-                    item['location'] = hotelBasicInfo['hotelAddress']
-                    item['rating'] = hotel.css('span.real').xpath('text()').get().strip()
-                    item['room_type'] = hotel.css('span.room-panel-roominfo-name').xpath('text()').get().strip()
-                    item['price'] = hotel.css('div#meta-real-price').xpath('span/div/text()').get().strip()[1:]
-                    item['image_urls'] = hotel.css('img.m-lazyImg__img').xpath("@src").getall()
-                    # Adding random values for latitude and longitude
-                    item['latitude'] = random.uniform(-90.0, 90.0)
-                    item['longitude'] = random.uniform(-180.0, 180.0)
-                    yield item
+                    print(hotelBasicInfo)
+                    #Check if images is loaded or not
+                    if not hotelBasicInfo["hotelMultiImgs"]:
+                        print("Image Not Loaded. Making the Request Again after 5 minutes")
+                        #htime.sleep(300)
+                        yield scrapy.Request(
+                        url=response.url,
+                        method='POST',
+                        headers={
+                            'User-Agent':
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+                        },
+                        callback=self.parse,
+                        dont_filter = True
+                    )
+                        break
                     
-        hotels = response.css('ul.long-list').xpath('//li').xpath('following-sibling::li')
-        for hotel in hotels:
-            title = hotel.css('span.name').xpath('./text()').get()
-            if title:
-                item = HotelSpiderItem()
-                item['title'] = title.strip()
-                item['location'] = (', ').join([children.xpath('./text()').get().strip() for children in hotel.css('p.transport').xpath("./span") if not children.xpath("@class").extract()])
-                item['rating'] = hotel.css('span.real').xpath('text()').get().strip()
-                item['room_type'] = hotel.css('span.room-panel-roominfo-name').xpath('text()').get().strip()
-                item['price'] = hotel.css('div#meta-real-price').xpath('span/div/text()').get().strip()[1:]
-                item['image_urls'] = hotel.css('img.m-lazyImg__img').xpath("@src").getall()
-                # Adding random values for latitude and longitude
-                item['latitude'] = random.uniform(-90.0, 90.0)
-                item['longitude'] = random.uniform(-180.0, 180.0)
-                yield item
+                    else:
+
+                        item = HotelSpiderItem()
+                        item['title'] = hotelBasicInfo['hotelEnName']
+                        item['location'] = hotelBasicInfo['hotelAddress']
+                        item['price'] = hotelBasicInfo['price']
+                        item['rating'] = hotel['commentInfo']["commentScore"]
+                        item['room_type'] = hotel["roomInfo"]["physicalRoomName"]
+                        item['latitude'] = hotel["positionInfo"]["coordinate"]["lat"]
+                        item['longitude'] = hotel["positionInfo"]["coordinate"]["lng"]
+                        item['images'] = [imageDict['url'] for image in hotelBasicInfo["hotelMultiImgs"] for imageDict in image ]
+                        
+                        yield item
+                    
+        # hotels = response.css('ul.long-list').xpath('//li').xpath('following-sibling::li')
+        # for hotel in hotels:
+        #     title = hotel.css('span.name').xpath('./text()').get()
+        #     if title:
+        #         item = HotelSpiderItem()
+        #         item['title'] = title.strip()
+        #         item['location'] = (', ').join([children.xpath('./text()').get().strip() for children in hotel.css('p.transport').xpath("./span") if not children.xpath("@class").extract()])
+        #         item['rating'] = hotel.css('span.real').xpath('text()').get().strip()
+        #         item['room_type'] = hotel.css('span.room-panel-roominfo-name').xpath('text()').get().strip()
+        #         item['price'] = hotel.css('div#meta-real-price').xpath('span/div/text()').get().strip()[1:]
+        #         item['image_urls'] = hotel.css('img.m-lazyImg__img').xpath("@src").getall()
+        #         # Adding random values for latitude and longitude
+        #         item['latitude'] = random.uniform(-90.0, 90.0)
+        #         item['longitude'] = random.uniform(-180.0, 180.0)
+        #         yield item

@@ -14,9 +14,9 @@ class SaveToDatabasePipeline:
         self.Session = init_db()
 
     def process_item(self, item, spider):
-        if 'images' not in item:
-            logger.error(f"Item contains no images: {item}")
-            raise DropItem("Item contains no images")
+        # if 'images' not in item:
+        #     logger.error(f"Item contains no images: {item}")
+        #     raise DropItem("Item contains no images")
 
         session = self.Session()
         try:
