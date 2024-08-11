@@ -65,6 +65,7 @@ DOWNLOAD_DELAY = 3
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
+    "hotel_spider.pipelines.CustomImagesPipeline":1,
    "hotel_spider.pipelines.SaveToDatabasePipeline": 300,
 }
 

@@ -73,7 +73,7 @@ class HotelsSpider(scrapy.Spider):
 
                 for hotel in hotel_list:
                     hotelBasicInfo = hotel['hotelBasicInfo']
-                    print(hotelBasicInfo)
+                    #print(hotelBasicInfo)
                     #Check if images is loaded or not
                     if not hotelBasicInfo["hotelMultiImgs"]:
                         print("Image Not Loaded. Making the Request Again after 5 minutes")
@@ -100,7 +100,7 @@ class HotelsSpider(scrapy.Spider):
                         item['room_type'] = hotel["roomInfo"]["physicalRoomName"]
                         item['latitude'] = hotel["positionInfo"]["coordinate"]["lat"]
                         item['longitude'] = hotel["positionInfo"]["coordinate"]["lng"]
-                        item['images'] = [imageDict['url'] for image in hotelBasicInfo["hotelMultiImgs"] for imageDict in image ]
+                        item['image_urls'] = [imageDict['url'] for image in hotelBasicInfo["hotelMultiImgs"] for imageDict in image ]
                         
                         yield item
                     

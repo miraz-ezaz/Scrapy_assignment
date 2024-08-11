@@ -42,12 +42,20 @@ class SaveToDatabasePipeline:
         return item
 
 class CustomImagesPipeline(ImagesPipeline):
+    # def open_spider(self, spider):
+    #     logger.info("CustomImagesPipeline initialized.")
     def get_media_requests(self, item, info):
-        for image_url in item["image_urls"]:
-            yield Request(image_url)
+        # Iterate through the image URLs and generate a download request for each one
+        for idx, image_url in enumerate(item['image_urls']):
+            print("pain")
+            yield Request(image_url, meta={
+                'title': item['title'],
+                'room_type': item['room_type'],
+                'idx': idx
+            })
 
-    
     def file_path(self, request, response=None, info=None, *, item=None):
+        # Generate the file name based on the title, room type, and index
         title = request.meta['title'].replace(" ", "_")
         room_type = request.meta['room_type'].replace(" ", "_")
         idx = request.meta['idx'] + 1
@@ -55,9 +63,9 @@ class CustomImagesPipeline(ImagesPipeline):
         return filename
 
     def item_completed(self, results, item, info):
-        image_paths = [x["path"] for ok, x in results if ok]
+        # Store the paths of successfully downloaded images in the item['images'] field
+        image_paths = [x['path'] for ok, x in results if ok]
         if not image_paths:
             raise DropItem("Item contains no images")
-        adapter = ItemAdapter(item)
-        adapter["image_paths"] = image_paths
+        item['images'] = image_paths
         return item
