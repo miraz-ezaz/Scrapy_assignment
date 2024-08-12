@@ -20,6 +20,7 @@ IMAGES_STORE = 'images'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
+MEDIA_ALLOW_REDIRECTS = True
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
@@ -65,8 +66,8 @@ DOWNLOAD_DELAY = 3
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "hotel_spider.pipelines.CustomImagesPipeline":1,
-   "hotel_spider.pipelines.SaveToDatabasePipeline": 300,
+    "hotel_spider.pipelines.CustomImageDownloadPipeline":300,
+   "hotel_spider.pipelines.SaveToDatabasePipeline": 1,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

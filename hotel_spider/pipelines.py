@@ -6,6 +6,8 @@ from scrapy import Request
 from database_manager.database import init_db, add_listing
 from hotel_spider.settings import IMAGES_STORE
 from itemadapter import ItemAdapter
+import requests
+from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
 
@@ -41,31 +43,44 @@ class SaveToDatabasePipeline:
             session.close()
         return item
 
-class CustomImagesPipeline(ImagesPipeline):
-    # def open_spider(self, spider):
-    #     logger.info("CustomImagesPipeline initialized.")
-    def get_media_requests(self, item, info):
-        # Iterate through the image URLs and generate a download request for each one
-        for idx, image_url in enumerate(item['image_urls']):
-            print("pain")
-            yield Request(image_url, meta={
-                'title': item['title'],
-                'room_type': item['room_type'],
-                'idx': idx
-            })
+class CustomImageDownloadPipeline:
+    def process_item(self, item, spider):
+        if 'image_urls' in item:
+            images = []
 
-    def file_path(self, request, response=None, info=None, *, item=None):
-        # Generate the file name based on the title, room type, and index
-        title = request.meta['title'].replace(" ", "_")
-        room_type = request.meta['room_type'].replace(" ", "_")
-        idx = request.meta['idx'] + 1
-        filename = f"{title}_{room_type}_{idx}.jpg"
-        return filename
+            # Download each image using requests
+            for idx, image_url in enumerate(item['image_urls']):
+                try:
+                    response = requests.get(image_url, stream=True)
+                    response.raise_for_status()  # Check for request errors
+                    image_path = self.save_image(response, item, idx)
+                    images.append(image_path)
+                except RequestException as e:
+                    spider.log(f"Failed to download image {image_url}: {e}")
+                    continue
 
-    def item_completed(self, results, item, info):
-        # Store the paths of successfully downloaded images in the item['images'] field
-        image_paths = [x['path'] for ok, x in results if ok]
-        if not image_paths:
-            raise DropItem("Item contains no images")
-        item['images'] = image_paths
+            
+        else:
+            raise DropItem("Missing image_urls in item")
+
         return item
+
+    def save_image(self, response, item, idx):
+        # Create the directory to save images if it doesn't exist
+        images_dir = "images"
+        if not os.path.exists(images_dir):
+            os.makedirs(images_dir)
+
+        # Generate the filename using title and idx (serial number)
+        title = item['title'].replace(" ", "_")
+        filename = f"{title}_{idx + 1}.jpg"
+        file_path = os.path.join(images_dir, filename)
+
+        # Save the image to the file
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(1024):
+                f.write(chunk)
+
+        return file_path
+        
+    
